@@ -1,3 +1,118 @@
+# Cursor Account Management Tool
+
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Windows Support](https://img.shields.io/badge/Windows-supported-success.svg)]()
+[![MacOS Support](https://img.shields.io/badge/MacOS-supported-success.svg)]()
+
+English | [简体中文](README.md)
+
+> This project is a modified version of [@wqjuser](https://github.com/wqjuser)'s Cursor tool.
+
+## ⚠️ Disclaimer
+
+This project is for learning and research purposes only, aiming to study the device identification mechanism of Cursor IDE. **We strongly recommend purchasing [Cursor](https://cursor.sh/) authentic authorization** to support developers.
+
+Using this tool may involve the following risks:
+- Violation of Cursor's terms of service
+- Account suspension
+- Software authorization invalidation
+- Other unknown risks
+
+If you recognize the value of Cursor, please support the genuine version and pay for the work of software developers.
+
+## Important Notes
+
+1. This tool is completely free, do not use it for commercial purposes or sales
+2. Regular users should not use Feature 4 (batch registration), which requires professional proxy configuration
+
+## Usage Instructions
+
+### Windows Users
+1. Download the latest `CursorPro.exe` from Releases
+2. Double-click to run, the program will automatically request administrator privileges
+
+### Mac Users
+1. Download the latest `CursorPro` from Releases
+2. Open terminal and navigate to download directory
+3. Execute the following commands:
+```bash
+chmod +x CursorPro
+sudo ./CursorPro
+```
+
+## 💡 Features
+
+### 1. One-Click Registration and Usage
+- ✨ Automatic account registration
+- 🔄 Automatic system login
+- 📝 Automatic file modification
+- Requirements:
+  - Chrome browser
+  - Previous Cursor login history
+
+### 2. File Modification Only
+- 🔧 Modifies necessary system files only
+- Suitable for users with existing accounts
+
+### 3. File Restoration
+- ⏮️ Restore to pre-modification state
+- 🔙 Use for rollback if modification fails
+- Safety measure
+
+### 4. Batch Registration (⚠️ Advanced Feature)
+- 🌐 Proxy software configuration support
+  - Clash
+  - V2rayN
+- ⚙️ Requires correct proxy configuration
+- Recommended for professional users only
+
+## 🔧 Configuration
+
+1. Administrator privileges required for first use
+2. When using Feature 4:
+   - Clash users need to enable external control
+   - V2rayN users need to enable HTTP proxy
+
+## ❓ Troubleshooting
+
+### 1. Program Won't Run
+- Windows: Run as administrator
+- MacOS: Use sudo to run
+- Check system permissions
+
+### 2. Auto-Registration Failure
+- ✔️ Confirm Chrome browser installation
+- ✔️ Verify Cursor login history
+- ✔️ Check network connection
+
+## Disclaimer
+
+This tool is for learning and research purposes only. Do not use for commercial purposes. Users bear all consequences of using this tool.
+
+This project is based on the following open-source projects:
+- Original integration project: [@wqjuser](https://github.com/wqjuser)
+- [cursor-auto-free](https://github.com/chengazhen/cursor-auto-free) - Author: [@chengazhen](https://github.com/chengazhen)
+- [cursor-reset](https://github.com/hamflx/cursor-reset) - Author: [@hamflx](https://github.com/hamflx)
+- File modification feature: [crazy](https://linux.do/t/topic/404579)
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+
+## Account Access
+
+If you have difficulty registering, visit the account sharing website: https://accounts.zxai.fun/
+- Accounts registered with temporary email, validity period uncertain
+- Limited to two accounts per IP per day
+- Recommended for testing and learning only
+
+## Acknowledgments
+
+Special thanks to the original author:
+- Author: zixiCat
+- Email: zixicat@outlook.com
+- Homepage: [https://github.com/zixiCat](https://github.com/zixiCat)
+
 ## ⚠️ Disclaimer
 This project is for learning and research purposes only, aiming to study the device identification mechanism of cursor IDE** We strongly recommend that you purchase [Coursor](https://cursor.sh/) Authentic authorization * * to support developers.
 

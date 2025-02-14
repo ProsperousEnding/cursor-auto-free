@@ -503,86 +503,194 @@ def batch_register(num_accounts, pin=''):
     successful_accounts = []
     failed_attempts = 0
     
-    for i in range(num_accounts):
-        # 切换代理
+    # 获取代理配置
+    logging.error("\n=== 代理配置 ===")
+    while True:
+        proxy_type = input("\n请选择代理软件类型 (1: Clash, 2: V2rayN) [默认1]: ").strip()
+        if not proxy_type:
+            proxy_type = "1"
+        if proxy_type in ["1", "2"]:
+            break
+        logging.error("请输入有效的选择（1或2）")
+    
+    if proxy_type == "1":  # Clash
+        while True:
+            try:
+                proxy_port = input("\n请输入Clash的API端口（默认9090）: ").strip()
+                if not proxy_port:  # 如果用户直接回车，使用默认值
+                    proxy_port = "9090"
+                proxy_port = int(proxy_port)
+                if 1 <= proxy_port <= 65535:
+                    break
+                logging.error("端口号必须在1-65535之间")
+            except ValueError:
+                logging.error("请输入有效的端口号")
+        
+        proxy_group = input("\n请输入代理组名称（默认GLOBAL）: ").strip()
+        if not proxy_group:  # 如果用户直接回车，使用默认值
+            proxy_group = "GLOBAL"
+            
+        # 首先检查代理服务是否可用
         try:
-            # 获取代理列表
-            response = requests.get("http://127.0.0.1:9097/proxies/OKZTWO")
+            logging.error("正在检查代理服务是否运行...")
+            response = requests.get(f"http://127.0.0.1:{proxy_port}/proxies/{proxy_group}", timeout=5)
+            if response.status_code != 200:
+                logging.error("代理服务响应异常，请确保：")
+                logging.error(f"1. Clash 已经正确运行")
+                logging.error(f"2. Clash 的API端口设置为 {proxy_port}")
+                logging.error(f"3. Clash 的外部控制设置已启用")
+                logging.error(f"4. Clash 中存在名为'{proxy_group}'的代理组")
+                return
+        except requests.exceptions.ConnectionError:
+            logging.error("无法连接到代理服务，请确保：")
+            logging.error(f"1. Clash 已经正确运行")
+            logging.error(f"2. Clash 的API端口设置为 {proxy_port}")
+            logging.error(f"3. Clash 的外部控制设置已启用")
+            logging.error(f"4. Clash 中存在名为'{proxy_group}'的代理组")
+            return
+        except Exception as e:
+            logging.error(f"检查代理服务时出现未知错误: {str(e)}")
+            return
+    
+    else:  # V2rayN
+        while True:
+            try:
+                proxy_port = input("\n请输入V2rayN的HTTP代理端口（默认10809）: ").strip()
+                if not proxy_port:  # 如果用户直接回车，使用默认值
+                    proxy_port = "10809"
+                proxy_port = int(proxy_port)
+                if 1 <= proxy_port <= 65535:
+                    break
+                logging.error("端口号必须在1-65535之间")
+            except ValueError:
+                logging.error("请输入有效的端口号")
+        
+        # 检查V2rayN代理是否可用
+        proxies = {
+            'http': f'http://127.0.0.1:{proxy_port}',
+            'https': f'http://127.0.0.1:{proxy_port}'
+        }
+        try:
+            logging.error("正在检查代理服务是否运行...")
+            response = requests.get('http://ip-api.com/json', proxies=proxies, timeout=10)
             if response.status_code == 200:
-                proxy_data = response.json()
-                all_proxies = proxy_data.get('all', [])
-                
-                # 筛选出以"专线"和"Lv"开头的代理
-                valid_proxies = [
-                    proxy for proxy in all_proxies 
-                    if proxy.startswith(('专线', 'Lv'))
-                ]
-                
-                if valid_proxies:
-                    # 随机选择代理并检查存活状态，直到找到可用的代理
-                    random.shuffle(valid_proxies)  # 随机打乱代理列表
-                    found_alive_proxy = False
+                ip_info = response.json()
+                current_ip = ip_info.get('query', 'unknown')
+                logging.error(f"代理连接成功，当前IP: {current_ip}")
+            else:
+                logging.error("代理服务响应异常，请确保：")
+                logging.error(f"1. V2rayN 已经正确运行")
+                logging.error(f"2. V2rayN 的HTTP代理端口设置为 {proxy_port}")
+                logging.error(f"3. V2rayN 已开启HTTP代理")
+                return
+        except requests.exceptions.ConnectionError:
+            logging.error("无法连接到代理服务，请确保：")
+            logging.error(f"1. V2rayN 已经正确运行")
+            logging.error(f"2. V2rayN 的HTTP代理端口设置为 {proxy_port}")
+            logging.error(f"3. V2rayN 已开启HTTP代理")
+            return
+        except Exception as e:
+            logging.error(f"检查代理服务时出现未知错误: {str(e)}")
+            return
+    
+    for i in range(num_accounts):
+        if proxy_type == "1":  # Clash
+            # 切换代理
+            try:
+                # 获取代理列表
+                response = requests.get(f"http://127.0.0.1:{proxy_port}/proxies/{proxy_group}", timeout=5)
+                if response.status_code == 200:
+                    proxy_data = response.json()
+                    all_proxies = proxy_data.get('all', [])
                     
-                    for selected_proxy in valid_proxies:
-                        # URL编码代理名称
-                        encoded_proxy = requests.utils.quote(selected_proxy)
+                    if not all_proxies:
+                        logging.error("未找到任何代理节点，请检查Clash配置")
+                        continue
+                    
+                    # 筛选出以"专线"和"Lv"开头的代理
+                    valid_proxies = [
+                        proxy for proxy in all_proxies 
+                        if proxy.startswith(('专线', 'Lv'))
+                    ]
+                    
+                    if valid_proxies:
+                        # 随机选择代理并检查存活状态，直到找到可用的代理
+                        random.shuffle(valid_proxies)  # 随机打乱代理列表
+                        found_alive_proxy = False
                         
-                        # 检查代理存活状态
-                        check_response = requests.get(f"http://127.0.0.1:9097/proxies/{encoded_proxy}")
-                        if check_response.status_code == 200:
-                            proxy_info = check_response.json()
-                            # 直接获取alive字段的值
-                            is_alive = proxy_info.get('alive')
-                            if is_alive:  # 如果代理存活
-                                found_alive_proxy = True
-                                logging.info(f"找到可用代理: {selected_proxy}")
-                                
-                                # 切换到选中的代理
-                                proxy_payload = {"name": selected_proxy}
-                                put_response = requests.put(
-                                    "http://127.0.0.1:9097/proxies/OKZTWO",
-                                    json=proxy_payload
-                                )
-                                
-                                if put_response.status_code == 204:
-                                    logging.info(f"成功切换到代理: {selected_proxy}")
-                                    # 等待1秒
-                                    time.sleep(1)
-                                    
-                                    # 获取当前IP
-                                    try:
-                                        ip_response = requests.get("http://ip-api.com/json")
-                                        if ip_response.status_code == 200:
-                                            ip_info = ip_response.json()
-                                            current_ip = ip_info.get('query', 'unknown')
-                                            logging.info(f"当前IP地址: {current_ip}")
-                                    except Exception as e:
-                                        logging.error(f"获取IP地址失败: {str(e)}")
-                                    break
+                        for selected_proxy in valid_proxies:
+                            # URL编码代理名称
+                            encoded_proxy = requests.utils.quote(selected_proxy)
+                            
+                            # 检查代理存活状态
+                            try:
+                                check_response = requests.get(f"http://127.0.0.1:{proxy_port}/proxies/{encoded_proxy}", timeout=5)
+                                if check_response.status_code == 200:
+                                    proxy_info = check_response.json()
+                                    # 直接获取alive字段的值
+                                    is_alive = proxy_info.get('alive')
+                                    if is_alive:  # 如果代理存活
+                                        found_alive_proxy = True
+                                        logging.error(f"找到可用代理: {selected_proxy}")
+                                        
+                                        # 切换到选中的代理
+                                        proxy_payload = {"name": selected_proxy}
+                                        put_response = requests.put(
+                                            f"http://127.0.0.1:{proxy_port}/proxies/{proxy_group}",
+                                            json=proxy_payload,
+                                            timeout=5
+                                        )
+                                        
+                                        if put_response.status_code == 204:
+                                            logging.error(f"成功切换到代理: {selected_proxy}")
+                                            # 等待1秒
+                                            time.sleep(1)
+                                            
+                                            # 获取当前IP
+                                            try:
+                                                ip_response = requests.get("http://ip-api.com/json", timeout=10)
+                                                if ip_response.status_code == 200:
+                                                    ip_info = ip_response.json()
+                                                    current_ip = ip_info.get('query', 'unknown')
+                                                    logging.error(f"当前IP地址: {current_ip}")
+                                            except Exception as e:
+                                                logging.error(f"获取IP地址失败: {str(e)}")
+                                            break
+                                        else:
+                                            logging.error("切换代理失败")
+                                    else:
+                                        logging.error(f"代理 {selected_proxy} 未存活 (alive: {is_alive})，尝试下一个")
                                 else:
-                                    logging.error("切换代理失败")
-                            else:
-                                logging.warning(f"代理 {selected_proxy} 未存活 (alive: {is_alive})，尝试下一个")
-                        else:
-                            logging.error(f"检查代理 {selected_proxy} 状态失败")
-                    
-                    if not found_alive_proxy:
-                        logging.error("未找到可用的存活代理")
+                                    logging.error(f"检查代理 {selected_proxy} 状态失败")
+                            except requests.exceptions.RequestException as e:
+                                logging.error(f"检查代理 {selected_proxy} 时发生错误: {str(e)}")
+                                continue
+                        
+                        if not found_alive_proxy:
+                            logging.error("未找到可用的存活代理")
+                            continue
+                    else:
+                        logging.error("未找到符合条件的代理，请确保Clash中有以'专线'或'Lv'开头的节点")
                         continue
                 else:
-                    logging.error("未找到符合条件的代理")
+                    logging.error("获取代理列表失败")
                     continue
-            else:
-                logging.error("获取代理列表失败")
+            except requests.exceptions.RequestException as e:
+                logging.error(f"代理切换过程出错: {str(e)}")
                 continue
-        except Exception as e:
-            logging.error(f"代理切换过程出错: {str(e)}")
-            continue
-
+            except Exception as e:
+                logging.error(f"代理切换过程出现未知错误: {str(e)}")
+                continue
+        
         # 开始注册流程
-        logging.info(f"\n=== 开始注册第 {i + 1}/{num_accounts} 个账号 ===")
+        logging.error(f"\n=== 开始注册第 {i + 1}/{num_accounts} 个账号 ===")
         browser_manager = None
         try:
+            # 如果是V2rayN，设置代理
+            if proxy_type == "2":
+                os.environ['HTTP_PROXY'] = f'http://127.0.0.1:{proxy_port}'
+                os.environ['HTTPS_PROXY'] = f'http://127.0.0.1:{proxy_port}'
+            
             browser_manager, is_success = try_register(is_auto_register=True, pin=pin)
             if is_success:
                 successful_accounts.append({
@@ -599,6 +707,10 @@ def batch_register(num_accounts, pin=''):
         finally:
             if browser_manager:
                 browser_manager.quit()
+            # 如果是V2rayN，清除代理环境变量
+            if proxy_type == "2":
+                os.environ.pop('HTTP_PROXY', None)
+                os.environ.pop('HTTPS_PROXY', None)
 
         if i < num_accounts - 1:  # 如果不是最后一个账号，则添加延迟
             # 随机延迟10-20秒
@@ -666,9 +778,13 @@ if __name__ == "__main__":
             except ValueError:
                 print("请输入有效的数字")
 
-        # 在这里获取 PIN 码
-        pin = input("\n请输入邮箱 PIN 码: ").strip()
-        logging.info("PIN 码已输入")
+        # 检查环境变量中是否存在 PIN 码
+        pin = os.getenv("TEMP_MAIL_EPIN", "")
+        if not pin:
+            pin = input("\n请输入邮箱 PIN 码: ").strip()
+            logging.info("PIN 码已手动输入")
+        else:
+            logging.info("已从环境变量获取 PIN 码")
 
         batch_register(num, pin)
         print("\n批量注册完成，按回车键退出...", end='', flush=True)
@@ -688,9 +804,13 @@ if __name__ == "__main__":
         logging.info("\n是否需要注册账号？(y/n)")
         register = input().strip().lower()
         if register == "y":
-            # 在这里获取 PIN 码
-            pin = input("\n请输入邮箱 PIN 码: ").strip()
-            logging.info("PIN 码已输入")
+            # 检查环境变量中是否存在 PIN 码
+            pin = os.getenv("TEMP_MAIL_EPIN", "")
+            if not pin:
+                pin = input("\n请输入邮箱 PIN 码: ").strip()
+                logging.info("PIN 码已手动输入")
+            else:
+                logging.info("已从环境变量获取 PIN 码")
             browser_manager, _ = try_register(pin=pin)
         else:
             is_success = True
@@ -706,6 +826,18 @@ if __name__ == "__main__":
             browser_manager = None
 
         if is_success:
+            # 删除screenshots目录下的文件
+            screenshot_dir = "screenshots"
+            if os.path.exists(screenshot_dir):
+                try:
+                    for file in os.listdir(screenshot_dir):
+                        file_path = os.path.join(screenshot_dir, file)
+                        if os.path.isfile(file_path):
+                            os.remove(file_path)
+                    logging.info("已清理screenshots目录下的文件")
+                except Exception as e:
+                    logging.error(f"清理screenshots目录时出错: {str(e)}")
+            
             # 重启Cursor并退出
             restart_cursor()
         else:

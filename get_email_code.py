@@ -5,6 +5,7 @@ from config import Config
 import requests
 import email
 import imaplib
+import os
 
 
 class EmailVerificationHandler:
@@ -12,8 +13,8 @@ class EmailVerificationHandler:
         self.imap = Config().get_imap()
         self.username = Config().get_temp_mail()
         self.session = requests.Session()
-        self.emailExtension = "@mailto.plus"
-        self.pin = pin
+        self.emailExtension = os.getenv("TEMP_MAIL_EXT", "@mailto.plus")
+        self.pin = pin or os.getenv("TEMP_MAIL_EPIN", "")
 
     def get_verification_code(self):
         code = None
@@ -113,24 +114,39 @@ class EmailVerificationHandler:
     def _get_latest_mail_code(self):
         # 获取邮件列表
         mail_list_url = f"https://tempmail.plus/api/mails?email={self.username}{self.emailExtension}&limit=20&epin={self.pin}"
+        print(f"请求URL: {mail_list_url}")
         mail_list_response = self.session.get(mail_list_url)
         mail_list_data = mail_list_response.json()
-        time.sleep(0.5)
+        
+        # 检查响应状态
         if not mail_list_data.get("result"):
+            error_msg = mail_list_data.get("error", "未知错误")
+            print(f"获取邮件列表失败: {error_msg}")
             return None, None
+        else:
+            print("成功获取邮件列表")
 
         # 获取最新邮件的ID
         first_id = mail_list_data.get("first_id")
         if not first_id:
+            print("没有找到最新邮件")
             return None, None
 
         # 获取具体邮件内容
         mail_detail_url = f"https://tempmail.plus/api/mails/{first_id}?email={self.username}{self.emailExtension}&epin={self.pin}"
+        print(f"获取邮件详情URL: {mail_detail_url}")
         mail_detail_response = self.session.get(mail_detail_url)
         mail_detail_data = mail_detail_response.json()
-        time.sleep(0.5)
+        
+        # 检查邮件详情响应状态
         if not mail_detail_data.get("result"):
+            error_msg = mail_detail_data.get("error", "未知错误")
+            print(f"获取邮件详情失败: {error_msg}")
             return None, None
+        else:
+            print("成功获取邮件详情")
+
+        time.sleep(0.5)
 
         # 从邮件文本中提取6位数字验证码
         mail_text = mail_detail_data.get("text", "")
